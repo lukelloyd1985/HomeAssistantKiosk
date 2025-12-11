@@ -1,8 +1,8 @@
 // Top-level build file
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
+        google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.5.0'
@@ -11,7 +11,7 @@ buildscript {
 
 allprojects {
     repositories {
-        jcenter()
         mavenCentral()
+        google()
     }
 }
