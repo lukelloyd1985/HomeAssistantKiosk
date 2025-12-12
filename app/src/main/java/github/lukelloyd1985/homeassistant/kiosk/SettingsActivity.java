@@ -61,8 +61,8 @@ public class SettingsActivity extends Activity {
         }
 
         // Basic URL validation
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            Toast.makeText(this, "URL must start with http:// or https://", Toast.LENGTH_SHORT).show();
+        if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("file://")) {
+            Toast.makeText(this, "URL must start with http://, https://, or file://", Toast.LENGTH_SHORT).show();
             return;
         }
 
