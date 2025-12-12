@@ -1,11 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 17
-    buildToolsVersion "23.0.3"
+    namespace 'github.lukelloyd1985.homeassistant.kiosk'
+    compileSdk 33
+    buildToolsVersion "33.0.2"
 
     defaultConfig {
-        applicationId "com.homeassistant.kiosk"
+        applicationId "github.lukelloyd1985.homeassistant.kiosk"
         minSdkVersion 17
         targetSdkVersion 17
         versionCode 1
@@ -19,7 +20,7 @@ android {
         }
     }
 
-    lintOptions {
+    lint {
         abortOnError false
     }
 }
