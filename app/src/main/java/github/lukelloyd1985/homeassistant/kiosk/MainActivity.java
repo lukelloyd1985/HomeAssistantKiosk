@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -28,24 +27,10 @@ public class MainActivity extends Activity {
     private GestureDetector gestureDetector;
     private static final int LONG_PRESS_DURATION = 3000; // 3 seconds
     private long touchStartTime = 0;
-    private PowerManager.WakeLock wakeLock;
-    private PowerManager powerManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Allow kiosk to show when screen wakes, but don't prevent screensaver
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-
-        // Initialize WakeLock for touch-to-wake functionality
-        powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
-            "HomeAssistantKiosk::WakeLock"
-        );
 
         setContentView(R.layout.activity_main);
 
@@ -140,9 +125,6 @@ public class MainActivity extends Activity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        // Wake screen on touch
-                        wakeScreen();
-
                         // Check if touch is in top-right corner
                         if (event.getX() > v.getWidth() - 100 && event.getY() < 100) {
                             touchStartTime = System.currentTimeMillis();
@@ -162,16 +144,6 @@ public class MainActivity extends Activity {
                 return false; // Allow WebView to handle the touch event
             }
         });
-    }
-
-    private void wakeScreen() {
-        if (powerManager != null && !powerManager.isInteractive()) {
-            // Screen is off, wake it up
-            if (wakeLock != null && !wakeLock.isHeld()) {
-                Log.d(TAG, "Waking screen from touch");
-                wakeLock.acquire(5000); // Wake and keep screen on for 5 seconds
-            }
-        }
     }
 
     private void openSettings() {
@@ -221,9 +193,5 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Release wake lock when activity is destroyed
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
     }
 }
