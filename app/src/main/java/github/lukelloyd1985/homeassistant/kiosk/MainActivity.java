@@ -20,6 +20,10 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.util.Log;
 
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebViewCompat;
+
 public class MainActivity extends Activity {
 
     private static final String TAG = "HomeAssistantKiosk";
@@ -81,6 +85,9 @@ public class MainActivity extends Activity {
             cookieManager.setAcceptThirdPartyCookies(webView, true);
         }
 
+        // Enable modern WebView features via AndroidX WebKit
+        enableModernWebViewFeatures(webView, webSettings);
+
         // Prevent links from opening in external browser
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -116,6 +123,35 @@ public class MainActivity extends Activity {
 
         // Setup long-press gesture to access settings
         setupSettingsGesture();
+    }
+
+    private void enableModernWebViewFeatures(WebView webView, WebSettings webSettings) {
+        // Enable force dark mode support if available (for dark theme compatibility)
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+            WebSettingsCompat.setForceDark(webSettings, WebSettingsCompat.FORCE_DARK_OFF);
+        }
+
+        // Enable safe browsing if available
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) {
+            WebSettingsCompat.setSafeBrowsingEnabled(webSettings, true);
+        }
+
+        // Enable off-screen pre-rasterization for better performance
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.OFF_SCREEN_PRERASTER)) {
+            WebSettingsCompat.setOffscreenPreRaster(webSettings, true);
+        }
+
+        // Log WebView version for debugging
+        String webViewVersion = "Unknown";
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_CLIENT)) {
+            try {
+                android.content.pm.PackageInfo pInfo = getPackageManager().getPackageInfo("com.google.android.webview", 0);
+                webViewVersion = pInfo.versionName;
+            } catch (Exception e) {
+                Log.w(TAG, "Could not get WebView version", e);
+            }
+        }
+        Log.i(TAG, "Using WebView version: " + webViewVersion);
     }
 
     private void setupSettingsGesture() {

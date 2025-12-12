@@ -25,4 +25,6 @@ android {
 }
 
 dependencies {
+    // AndroidX WebView - provides modern Chromium-based WebView for all Android versions
+    implementation 'androidx.webkit:webkit:1.8.0'
 }
