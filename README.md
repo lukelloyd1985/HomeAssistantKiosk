@@ -28,7 +28,7 @@ Download from [Releases](https://github.com/lukelloyd1985/HomeAssistantKiosk/rel
 
 After installing the APK, you can configure the kiosk URL directly on the device:
 
-1. Long-press the **top-right corner** of the screen for **3 seconds**
+1. Long-press the **top-right corner** of the screen for **3 seconds** and release
 2. A settings dialog will appear
 3. Enter your Home Assistant URL (e.g., `http://homeassistant.local:8123`)
 4. Tap "Save"
