@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.view.GestureDetector;
@@ -64,17 +65,21 @@ public class MainActivity extends Activity {
         String userAgent = webSettings.getUserAgentString();
         webSettings.setUserAgentString(userAgent + " HomeAssistantKiosk/1.0");
 
-        // Enable mixed content mode for compatibility
-        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        // Enable mixed content mode for compatibility (API 21+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
 
         // Enable caching for better performance and authentication persistence
         webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        webSettings.setAppCacheEnabled(true);
 
         // Enable cookies for authentication
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webView, true);
+        // Third-party cookies require API 21+ (automatically allowed on API 17-19)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(webView, true);
+        }
 
         // Prevent links from opening in external browser
         webView.setWebViewClient(new WebViewClient() {
