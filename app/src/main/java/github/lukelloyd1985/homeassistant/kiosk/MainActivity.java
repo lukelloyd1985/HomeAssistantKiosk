@@ -1,4 +1,4 @@
-package com.homeassistant.kiosk;
+package github.lukelloyd1985.homeassistant.kiosk;
 
 import android.app.Activity;
 import android.os.Bundle;
