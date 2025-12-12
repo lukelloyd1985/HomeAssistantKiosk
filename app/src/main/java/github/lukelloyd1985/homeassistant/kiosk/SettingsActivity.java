@@ -70,7 +70,7 @@ public class SettingsActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences("KioskPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("kiosk_url", url);
-        editor.commit();
+        editor.apply();
 
         Toast.makeText(this, "URL saved. Please restart the app.", Toast.LENGTH_LONG).show();
         finish();

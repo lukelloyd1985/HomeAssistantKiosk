@@ -1,17 +1,13 @@
 package github.lukelloyd1985.homeassistant.kiosk;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -28,7 +24,6 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "HomeAssistantKiosk";
     private WebView webView;
-    private GestureDetector gestureDetector;
     private static final int LONG_PRESS_DURATION = 3000; // 3 seconds
     private long touchStartTime = 0;
 
@@ -58,10 +53,8 @@ public class MainActivity extends Activity {
         String userAgent = webSettings.getUserAgentString();
         webSettings.setUserAgentString(userAgent + " HomeAssistantKiosk/1.0");
 
-        // Enable mixed content mode for compatibility (API 21+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
+        // Enable mixed content mode for compatibility
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
         // Enable caching for better performance and authentication persistence
         webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -71,19 +64,12 @@ public class MainActivity extends Activity {
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
         // Enable hardware acceleration for better performance
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        } else {
-            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-        }
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         // Enable cookies for authentication
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        // Third-party cookies require API 21+ (automatically allowed on API 17-19)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cookieManager.setAcceptThirdPartyCookies(webView, true);
-        }
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         // Enable modern WebView features via AndroidX WebKit
         enableModernWebViewFeatures(webView, webSettings);
@@ -190,13 +176,19 @@ public class MainActivity extends Activity {
 
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
-        decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LOW_PROFILE);
+                | View.SYSTEM_UI_FLAG_LOW_PROFILE;
+
+        // Add immersive sticky mode on API 19+ for better kiosk experience
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            uiOptions |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        }
+
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
@@ -209,12 +201,8 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // Disable back button
+        // Disable back button in kiosk mode
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            return true;
-        }
-        // Disable home button (requires system app for full effect)
-        if (keyCode == KeyEvent.KEYCODE_HOME) {
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -229,5 +217,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (webView != null) {
+            webView.loadUrl("about:blank");
+            webView.clearCache(true);
+            webView.clearHistory();
+            webView.removeAllViews();
+            webView.destroy();
+            webView = null;
+        }
     }
 }
