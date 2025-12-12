@@ -13,8 +13,8 @@ android {
         versionName "1.0"
     }
 
-    applicationVariants.all { variant ->
-        variant.outputs.all {
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
             outputFileName = "home-assistant-kiosk.apk"
         }
     }
