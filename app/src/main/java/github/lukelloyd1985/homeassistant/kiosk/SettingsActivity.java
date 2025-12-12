@@ -77,10 +77,8 @@ public class SettingsActivity extends Activity {
     }
 
     private void exitApp() {
-        // Close the settings activity
-        finish();
-        // Close the main activity and exit the app completely
-        android.os.Process.killProcess(android.os.Process.myPid());
+        // Close all activities and remove task from recent apps
+        finishAffinity();
         System.exit(0);
     }
 }
