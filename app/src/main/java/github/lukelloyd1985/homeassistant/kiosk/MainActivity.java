@@ -14,18 +14,22 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.util.Log;
 
 public class MainActivity extends Activity {
 
+    private static final String TAG = "HomeAssistantKiosk";
     private WebView webView;
     private GestureDetector gestureDetector;
     private static final int LONG_PRESS_DURATION = 3000; // 3 seconds
     private long touchStartTime = 0;
     private PowerManager.WakeLock wakeLock;
+    private PowerManager powerManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,9 +41,9 @@ public class MainActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         // Initialize WakeLock for touch-to-wake functionality
-        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
             "HomeAssistantKiosk::WakeLock"
         );
 
@@ -73,6 +77,17 @@ public class MainActivity extends Activity {
         // Enable caching for better performance and authentication persistence
         webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
+        // Additional settings for better JavaScript and media support
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
+
+        // Enable hardware acceleration for better performance
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        } else {
+            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+
         // Enable cookies for authentication
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -86,6 +101,22 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 view.loadUrl(url);
+                return true;
+            }
+
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Log.e(TAG, "WebView error: " + description + " (code: " + errorCode + ") for URL: " + failingUrl);
+            }
+        });
+
+        // Add WebChromeClient for JavaScript console logging and debugging
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                Log.d(TAG, "JS Console: " + consoleMessage.message() +
+                    " -- From line " + consoleMessage.lineNumber() +
+                    " of " + consoleMessage.sourceId());
                 return true;
             }
         });
@@ -134,8 +165,12 @@ public class MainActivity extends Activity {
     }
 
     private void wakeScreen() {
-        if (wakeLock != null && !wakeLock.isHeld()) {
-            wakeLock.acquire(3000); // Keep screen on for 3 seconds, then allow normal timeout
+        if (powerManager != null && !powerManager.isInteractive()) {
+            // Screen is off, wake it up
+            if (wakeLock != null && !wakeLock.isHeld()) {
+                Log.d(TAG, "Waking screen from touch");
+                wakeLock.acquire(5000); // Wake and keep screen on for 5 seconds
+            }
         }
     }
 
