@@ -1,15 +1,18 @@
 package github.lukelloyd1985.homeassistant.kiosk;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -21,16 +24,23 @@ public class MainActivity extends Activity {
     private GestureDetector gestureDetector;
     private static final int LONG_PRESS_DURATION = 3000; // 3 seconds
     private long touchStartTime = 0;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Keep screen on
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Allow kiosk to show when screen wakes, but don't prevent screensaver
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+
+        // Initialize WakeLock for touch-to-wake functionality
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "HomeAssistantKiosk::WakeLock"
+        );
 
         setContentView(R.layout.activity_main);
 
@@ -43,10 +53,28 @@ public class MainActivity extends Activity {
         webSettings.setDatabaseEnabled(true);
         webSettings.setAllowFileAccess(true);
         webSettings.setAllowContentAccess(true);
-        webSettings.setLoadWithOverviewMode(true);
+
+        // Fix viewport settings for better Home Assistant compatibility
+        webSettings.setLoadWithOverviewMode(false);
         webSettings.setUseWideViewPort(true);
         webSettings.setBuiltInZoomControls(false);
         webSettings.setSupportZoom(false);
+
+        // Set proper user agent to ensure Home Assistant recognizes the browser
+        String userAgent = webSettings.getUserAgentString();
+        webSettings.setUserAgentString(userAgent + " HomeAssistantKiosk/1.0");
+
+        // Enable mixed content mode for compatibility
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        // Enable caching for better performance and authentication persistence
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        webSettings.setAppCacheEnabled(true);
+
+        // Enable cookies for authentication
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         // Prevent links from opening in external browser
         webView.setWebViewClient(new WebViewClient() {
@@ -76,6 +104,9 @@ public class MainActivity extends Activity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        // Wake screen on touch
+                        wakeScreen();
+
                         // Check if touch is in top-right corner
                         if (event.getX() > v.getWidth() - 100 && event.getY() < 100) {
                             touchStartTime = System.currentTimeMillis();
@@ -95,6 +126,12 @@ public class MainActivity extends Activity {
                 return false; // Allow WebView to handle the touch event
             }
         });
+    }
+
+    private void wakeScreen() {
+        if (wakeLock != null && !wakeLock.isHeld()) {
+            wakeLock.acquire(3000); // Keep screen on for 3 seconds, then allow normal timeout
+        }
     }
 
     private void openSettings() {
@@ -139,5 +176,14 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         hideSystemUI();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Release wake lock when activity is destroyed
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
     }
 }
