@@ -1,19 +1,26 @@
 package github.lukelloyd1985.homeassistant.kiosk;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
     private WebView webView;
-    private static final String HOME_ASSISTANT_URL = "http://homeassistant.local:8123";
+    private GestureDetector gestureDetector;
+    private static final int LONG_PRESS_DURATION = 3000; // 3 seconds
+    private long touchStartTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,8 +60,47 @@ public class MainActivity extends Activity {
         // Hide navigation bar and status bar for true kiosk mode
         hideSystemUI();
 
-        // Load Home Assistant URL
-        webView.loadUrl(HOME_ASSISTANT_URL);
+        // Load kiosk URL from SharedPreferences (or default from resources)
+        SharedPreferences prefs = getSharedPreferences("KioskPrefs", MODE_PRIVATE);
+        String kioskUrl = prefs.getString("kiosk_url", getString(R.string.kiosk_url));
+        webView.loadUrl(kioskUrl);
+
+        // Setup long-press gesture to access settings
+        setupSettingsGesture();
+    }
+
+    private void setupSettingsGesture() {
+        // Long-press on top-right corner (within 100px area) for 3 seconds to open settings
+        webView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Check if touch is in top-right corner
+                        if (event.getX() > v.getWidth() - 100 && event.getY() < 100) {
+                            touchStartTime = System.currentTimeMillis();
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        if (touchStartTime > 0) {
+                            long pressDuration = System.currentTimeMillis() - touchStartTime;
+                            if (pressDuration >= LONG_PRESS_DURATION) {
+                                openSettings();
+                            }
+                            touchStartTime = 0;
+                        }
+                        break;
+                }
+                return false; // Allow WebView to handle the touch event
+            }
+        });
+    }
+
+    private void openSettings() {
+        Toast.makeText(this, "Opening settings...", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
     private void hideSystemUI() {

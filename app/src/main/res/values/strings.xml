@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Home Assistant Kiosk</string>
+    <string name="kiosk_url">http://homeassistant.local:8123</string>
 </resources>
